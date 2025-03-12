@@ -1,0 +1,795 @@
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2025.03.12 - 07:14:41]
+
+/Users/rafaellopezverdejo/Documents/proyectosMSX/asm/visor/src/main.asm
+Errors: 0
+
+       1   00:0000                      ;*********************************************************************
+       2   00:0000                      ;*
+       3   00:0000                      ;* Visor de pantallas
+       4   00:0000                      ;*
+       5   00:0000                      ;* Fecha: 09/03/2025
+       6   00:0000                      ;* Autor: Rafael López "Orion"
+       7   00:0000                      ;* Email: orion@orionmsx.com
+       8   00:0000                      ;*
+       9   00:0000                      ;*********************************************************************
+      10   00:0000                      
+      11   00:0000                      	output "out/main.bin"
+      12   00:8200                      
+      13   00:8200                          include "constantes.asm"
+       1.  00:8200                      ;****************
+       2.  00:8200                      ; SERVICIOS BIOS
+       3.  00:8200                      ;****************
+       4.  00:8200                      
+       5.  00:8200  (00:00D5)           GTSTCK  equ	#00D5	;lee los cursores y joystick
+       6.  00:8200  (00:013E)           RDVDP	equ	#013E	;lee registro del VDP
+       7.  00:8200  (00:0047)           WRTVDP 	equ #0047	;escribe registro del VDP
+       8.  00:8200  (00:0053)           SETWRT  equ #0053   ;habilita el VDP para escribir
+       9.  00:8200  (00:004D)           WRTVRM	equ	#004D	;escribe en VRAM
+      10.  00:8200                      
+      11.  00:8200                      
+      12.  00:8200                      ;*************************
+      13.  00:8200                      ; DIRECCIONES IMPORTANTES
+      14.  00:8200                      ;*************************
+      15.  00:8200                      
+      16.  00:8200  (00:FD9F)           HTIMI	equ #FD9F   ;dirección de la ISR original del sistema para el VDP
+      17.  00:8200                      
+      18.  00:8200                      
+      19.  00:8200                      ;*************
+      20.  00:8200                      ; ESPECIFICAS
+      21.  00:8200                      ;*************
+      22.  00:8200                      
+      23.  00:8200  (00:0005)           ANCHO_MAPA  equ 5
+      24.  00:8200  (00:0002)           ALTO_MAPA   equ 2
+      25.  00:8200  (00:0006)           byte_6      equ 6
+      26.  00:8200  (00:0006)           RETARDO_MAX equ	6
+      14   00:8200                      
+      15   00:8200                      ;**************
+      16   00:8200                      ; CABECERA BIN
+      17   00:8200                      ;**************
+      18   00:8200                      
+      19   00:8200  FE                  	db #fe
+      20   00:8201  00 82               	dw BEGIN
+      21   00:8203  19 88               	dw END
+      22   00:8205  00 82               	dw BEGIN
+      23   00:8207                      
+      24   00:8207                      	org #8200
+      25   00:8200                      
+      26   00:8200                      ;*********************
+      27   00:8200                      ; INICIO DEL PROGRAMA
+      28   00:8200                      ;*********************
+      29   00:8200                      
+      30   00:8200                      BEGIN:
+      31   00:8200                      
+      32   00:8200  F3                      di
+      33   00:8201                      
+      34   00:8201                          ;Engancha nuestra custom ISR
+      35   00:8201                          ;Aquí pondríamos im 1, pero ya lo ha hecho la inicialización de la ROM a 32 KB
+      36   00:8201  3E C3                   ld a,0C3h                               ;código de la instrucción JP
+      37   00:8203  32 9F FD                ld (HTIMI),a
+      38   00:8206  21 5E 82                ld hl,tickMain
+      39   00:8209  22 A0 FD                ld (HTIMI+1),hl
+      40   00:820C                          
+      41   00:820C                          ;bloquea la lógica del juego para inicializar hardware
+      42   00:820C  3E 01                   ld a,1
+      43   00:820E  32 16 88                ld (tickInProgress),a
+      44   00:8211                      
+      45   00:8211  CD 2F 83                call init_vdp
+      46   00:8214  CD 5D 83                call SetVideoMode
+      47   00:8217                      
+      48   00:8217  21 CD 86                ld hl,tabla_colores
+      49   00:821A  11 00 00                ld de,#0000 
+      50   00:821D  CD ED 85                call depack_VRAM
+      51   00:8220  21 CD 86                ld hl,tabla_colores
+      52   00:8223  11 00 08                ld de,#0800 
+      53   00:8226  CD ED 85                call depack_VRAM
+      54   00:8229  21 CD 86                ld hl,tabla_colores
+      55   00:822C  11 00 10                ld de,#1000 
+      56   00:822F  CD ED 85                call depack_VRAM
+      57   00:8232                      
+      58   00:8232  21 4C 87                ld hl,tabla_tiles
+      59   00:8235  11 00 20                ld de,#2000 
+      60   00:8238  CD ED 85                call depack_VRAM
+      61   00:823B  21 4C 87                ld hl,tabla_tiles
+      62   00:823E  11 00 28                ld de,#2800 
+      63   00:8241  CD ED 85                call depack_VRAM
+      64   00:8244  21 4C 87                ld hl,tabla_tiles
+      65   00:8247  11 00 30                ld de,#3000 
+      66   00:824A  CD ED 85                call depack_VRAM
+      67   00:824D                      
+      68   00:824D  AF                      xor a
+      69   00:824E  21 12 88                ld hl,x_mapa
+      70   00:8251  77                      ld (hl),a
+      71   00:8252  23                      inc hl
+      72   00:8253  77                      ld (hl),a
+      73   00:8254                      
+      74   00:8254                          ;call pinta_pantalla
+      75   00:8254                      
+      76   00:8254                          ;desbloquea la lógica del juego tras inicializar hardware
+      77   00:8254  AF                      xor a
+      78   00:8255  32 16 88                ld (tickInProgress),a
+      79   00:8258  CD 3E 01                call RDVDP
+      80   00:825B                      
+      81   00:825B  FB                      ei
+      82   00:825C                      
+      83   00:825C                      bucle_infinito:
+      84   00:825C  18 FE                   jr $
+      85   00:825E                      
+      86   00:825E                      ;.bucle:
+      87   00:825E                      ;    halt
+      88   00:825E                      ;
+      89   00:825E                      ;    ld a,(retardo)
+      90   00:825E                      ;	inc a
+      91   00:825E                      ;	ld (retardo),a
+      92   00:825E                      ;	cp RETARDO_MAX
+      93   00:825E                      ;	jr. nz,.bucle
+      94   00:825E                      ;
+      95   00:825E                      ;    xor a
+      96   00:825E                      ;	call GTSTCK
+      97   00:825E                      ;
+      98   00:825E                      ;    cp 1
+      99   00:825E                      ;    call z,do_arriba
+     100   00:825E                      ;	cp 3
+     101   00:825E                      ;	call z,do_derecha
+     102   00:825E                      ;    cp 5
+     103   00:825E                      ;    call z,do_abajo
+     104   00:825E                      ;	cp 7
+     105   00:825E                      ;	call z,do_izquierda
+     106   00:825E                      ;
+     107   00:825E                      ;    xor a
+     108   00:825E                      ;	ld (retardo),a
+     109   00:825E                      ;
+     110   00:825E                      ;    jr .bucle
+     111   00:825E                      
+     112   00:825E                          include "isr.asm"
+       1.  00:825E                      tickMain:
+       2.  00:825E  F3                      di
+       3.  00:825F  CD 3E 01                call RDVDP                      ;borra flag de interrupción
+       4.  00:8262  21 16 88                ld hl,tickInProgress            ;si hay una ISR anterior sin terminar no ejecuta la lógica del juego
+       5.  00:8265  CB 46                   bit 0,(hl)
+       6.  00:8267  20 34                   jr nz,tickMain2
+       7.  00:8269  34                      inc (hl)                        ;pone la marca de ISR trabajando
+       8.  00:826A  FB                      ei
+       9.  00:826B                      
+      10.  00:826B                          ;call chkControls                ;actualiza el estado de los controles
+      11.  00:826B                          ;call runGame                    ;lógica del juego
+      12.  00:826B                      
+      13.  00:826B  21 17 88                ld hl,timer                     ;incrementa el contador global del juego
+      14.  00:826E  34                      inc (hl)
+      15.  00:826F                      
+      16.  00:826F  3A 18 88                ld a,(enCortinilla)
+      17.  00:8272  B7                      or a
+      18.  00:8273  28 0C                   jr z,.seguimos
+      19.  00:8275                      
+      20.  00:8275  CD 76 83                call doCortinilla
+      21.  00:8278  21 15 88                ld hl,waitCounter
+      22.  00:827B  35                      dec	(hl)                        ;decrementa el contador de espera (empezamos con valor 31)
+      23.  00:827C  FA 81 82                jp m,.seguimos
+      24.  00:827F  18 1C                   jr tickMain2
+      25.  00:8281                      
+      26.  00:8281                      .seguimos:
+      27.  00:8281                      
+      28.  00:8281  AF                      xor a
+      29.  00:8282  CD D5 00            	call GTSTCK
+      30.  00:8285                      
+      31.  00:8285  FE 01                   cp 1
+      32.  00:8287  CC A2 82                call z,do_arriba
+      33.  00:828A  FE 03               	cp 3
+      34.  00:828C  CC C3 82            	call z,do_derecha
+      35.  00:828F  FE 05                   cp 5
+      36.  00:8291  CC B2 82                call z,do_abajo
+      37.  00:8294  FE 07               	cp 7
+      38.  00:8296  CC D4 82            	call z,do_izquierda
+      39.  00:8299                      
+      40.  00:8299  AF                      xor a                           ;quita la marca de ISR trabajando
+      41.  00:829A  32 16 88                ld (tickInProgress),a
+      42.  00:829D                      
+      43.  00:829D                      tickMain2:
+      44.  00:829D  CD 3E 01                call RDVDP                      ;lee y borra el flag de interrupción
+      45.  00:82A0  B7                      or a
+      46.  00:82A1                      
+      47.  00:82A1  C9                      ret
+     113   00:82A2                          include "rutinas.asm"
+       1.  00:82A2                      do_arriba:
+       2.  00:82A2  F5                      push af
+       3.  00:82A3  3A 13 88                ld a,(y_mapa)
+       4.  00:82A6  B7                      or a
+       5.  00:82A7  28 07                   jr z,.end
+       6.  00:82A9  3D                      dec a
+       7.  00:82AA  32 13 88                ld (y_mapa),a
+       8.  00:82AD  CD E4 82                call pinta_pantalla
+       9.  00:82B0                      .end:
+      10.  00:82B0  F1                      pop af
+      11.  00:82B1  C9                      ret
+      12.  00:82B2                      
+      13.  00:82B2                      do_abajo:
+      14.  00:82B2  F5                      push af
+      15.  00:82B3  3A 13 88                ld a,(y_mapa)
+      16.  00:82B6  FE 01                   cp (ALTO_MAPA-1)
+      17.  00:82B8  28 07                   jr z,.end
+      18.  00:82BA  3C                      inc a
+      19.  00:82BB  32 13 88                ld (y_mapa),a
+      20.  00:82BE  CD E4 82                call pinta_pantalla
+      21.  00:82C1                      .end:
+      22.  00:82C1  F1                      pop af
+      23.  00:82C2  C9                      ret
+      24.  00:82C3                      
+      25.  00:82C3                      
+      26.  00:82C3                      do_derecha:
+      27.  00:82C3  F5                      push af
+      28.  00:82C4  3A 12 88                ld a,(x_mapa)
+      29.  00:82C7  FE 04                   cp (ANCHO_MAPA-1)
+      30.  00:82C9  28 07                   jr z,.end
+      31.  00:82CB  3C                      inc a
+      32.  00:82CC  32 12 88                ld (x_mapa),a
+      33.  00:82CF  CD E4 82                call pinta_pantalla
+      34.  00:82D2                      .end:
+      35.  00:82D2  F1                      pop af
+      36.  00:82D3  C9                      ret
+      37.  00:82D4                      
+      38.  00:82D4                      
+      39.  00:82D4                      do_izquierda:
+      40.  00:82D4  F5                      push af
+      41.  00:82D5  3A 12 88                ld a,(x_mapa)
+      42.  00:82D8  B7                      or a
+      43.  00:82D9  28 07                   jr z,.end
+      44.  00:82DB  3D                      dec a
+      45.  00:82DC  32 12 88                ld (x_mapa),a
+      46.  00:82DF  CD E4 82                call pinta_pantalla
+      47.  00:82E2                      .end:
+      48.  00:82E2  F1                      pop af
+      49.  00:82E3  C9                      ret
+      50.  00:82E4                      
+      51.  00:82E4                      pinta_pantalla:
+      52.  00:82E4  3E 20                   ld a,32
+      53.  00:82E6  21 15 88                ld hl,waitCounter
+      54.  00:82E9  32 15 88                ld (waitCounter),a
+      55.  00:82EC                          ;halt
+      56.  00:82EC                      .pinta_pantalla0:
+      57.  00:82EC                          ;halt
+      58.  00:82EC  3E 01                   ld a,1
+      59.  00:82EE  32 18 88                ld (enCortinilla),a
+      60.  00:82F1  CD 76 83                call doCortinilla
+      61.  00:82F4  21 15 88                ld hl,waitCounter
+      62.  00:82F7  35                      dec	(hl)                        ;decrementa el contador de espera (empezamos con valor 31)
+      63.  00:82F8  FA FC 82                jp m,.seguimos
+      64.  00:82FB  C9                      ret
+      65.  00:82FC                      
+      66.  00:82FC                      .seguimos:
+      67.  00:82FC  AF                      xor a
+      68.  00:82FD  32 18 88                ld (enCortinilla),a
+      69.  00:8300                          ;jp p,.pinta_pantalla0
+      70.  00:8300                      
+      71.  00:8300  CD 12 83                call calcula_puntero
+      72.  00:8303  87                      add a,a
+      73.  00:8304  21 8D 83                ld hl,pantallas
+      74.  00:8307  CD 22 83                call getIndexHL_A
+      75.  00:830A  11 00 38                ld de,#3800
+      76.  00:830D  76                      halt
+      77.  00:830E  CD ED 85                call depack_VRAM
+      78.  00:8311  C9                      ret
+      79.  00:8312                      
+      80.  00:8312                      
+      81.  00:8312                      calcula_puntero:
+      82.  00:8312  3A 13 88                ld a,(y_mapa)
+      83.  00:8315  47                      ld b,a
+      84.  00:8316  AF                      xor a
+      85.  00:8317  80 80 80 80 80      [ANCHO_MAPA]    add b
+      86.  00:831C  47                      ld b,a
+      87.  00:831D  3A 12 88                ld a,(x_mapa)
+      88.  00:8320  80                      add a,b
+      89.  00:8321  C9                      ret
+      90.  00:8322                      
+      91.  00:8322                      
+      92.  00:8322                      ;*********************************************************************************************************
+      93.  00:8322                      ;*
+      94.  00:8322                      ;* Obtiene el valor de la posición de memoria apuntada por HL + A
+      95.  00:8322                      ;*
+      96.  00:8322                      ;* Parámetros: HL = index pointer, A = index
+      97.  00:8322                      ;*
+      98.  00:8322                      ;* Devuelve: HL = (HL + A)
+      99.  00:8322                      ;*
+     100.  00:8322                      ;* Modifica: Nada
+     101.  00:8322                      ;*
+     102.  00:8322                      ;*********************************************************************************************************
+     103.  00:8322                      getIndexHL_A:
+     104.  00:8322  CD 2A 83                call ADD_A_HL
+     105.  00:8325  7E                      ld a,(hl)
+     106.  00:8326  23                      inc hl
+     107.  00:8327  66                      ld h,(hl)
+     108.  00:8328  6F                      ld l,a
+     109.  00:8329  C9                      ret
+     110.  00:832A                      
+     111.  00:832A                      
+     112.  00:832A                      ;*********************************************************************************************************
+     113.  00:832A                      ;*
+     114.  00:832A                      ;* Suma HL y A
+     115.  00:832A                      ;*
+     116.  00:832A                      ;* Parámetros: A, HL
+     117.  00:832A                      ;*
+     118.  00:832A                      ;* Devuelve: HL = A + HL
+     119.  00:832A                      ;*
+     120.  00:832A                      ;* Modifica: Nada
+     121.  00:832A                      ;*
+     122.  00:832A                      ;*********************************************************************************************************
+     123.  00:832A                      ADD_A_HL:
+     124.  00:832A  85                      add a,l
+     125.  00:832B  6F                      ld l,a
+     126.  00:832C  D0                      ret nc
+     127.  00:832D  24                      inc h
+     128.  00:832E  C9                      ret
+     129.  00:832F                      
+     130.  00:832F                      
+     131.  00:832F                      init_vdp:
+     132.  00:832F  21 00 00                ld hl,0
+     133.  00:8332  01 00 40                ld bc,4000h             ;16 KB
+     134.  00:8335  AF                      xor	a                   ;Valor 0
+     135.  00:8336  CD 40 83                call setFillVRAM        ;Ponemos a 0 las 16 KB de la VRAM
+     136.  00:8339                      
+     137.  00:8339                      
+     138.  00:8339                      ;*********************************************************************************************************
+     139.  00:8339                      ;*
+     140.  00:8339                      ;* Borra la pantalla
+     141.  00:8339                      ;*
+     142.  00:8339                      ;* Parámetros: Ninguno
+     143.  00:8339                      ;*
+     144.  00:8339                      ;* Devuelve: Nada
+     145.  00:8339                      ;*
+     146.  00:8339                      ;* Modifica: HL, BC, A
+     147.  00:8339                      ;*
+     148.  00:8339                      ;*********************************************************************************************************
+     149.  00:8339                      clearScreen:
+     150.  00:8339  21 00 78                ld hl,7800h	        ;tabla	de nombres (#3800) VRAM	= 16K #0000-#3FFF
+     151.  00:833C  01 00 03                ld bc,300h	        ;name table size
+     152.  00:833F  AF                      xor	a
+     153.  00:8340                          ;sigue abajo en setFillVRAM
+     154.  00:8340                      
+     155.  00:8340                      
+     156.  00:8340                      ;*********************************************************************************************************
+     157.  00:8340                      ;*
+     158.  00:8340                      ;* Escribe en una zona de la VRAM el valor de A
+     159.  00:8340                      ;*
+     160.  00:8340                      ;* Parámetros: HL = dirección VRAM, A = dato a escribir, BC = número de bytes
+     161.  00:8340                      ;*
+     162.  00:8340                      ;* Devuelve: Nada
+     163.  00:8340                      ;*
+     164.  00:8340                      ;* Modifica: A', C'
+     165.  00:8340                      ;*
+     166.  00:8340                      ;*********************************************************************************************************
+     167.  00:8340                      setFillVRAM:
+     168.  00:8340  CD 51 83                call setVDPWrite
+     169.  00:8343                      fillVRAM:
+     170.  00:8343  08                      ex af,af'
+     171.  00:8344                      VRAM_write2:                        ;envío de las órdenes al VDP
+     172.  00:8344  08                      ex af,af'
+     173.  00:8345  D9                      exx
+     174.  00:8346  ED 79                   out (c),a
+     175.  00:8348  D9                      exx
+     176.  00:8349  08                      ex af,af'
+     177.  00:834A  0B                      dec bc
+     178.  00:834B  78                      ld a,b
+     179.  00:834C  B1                      or c
+     180.  00:834D  20 F5                   jr nz,VRAM_write2
+     181.  00:834F  08                      ex af,af'
+     182.  00:8350  C9                      ret
+     183.  00:8351                      
+     184.  00:8351                      
+     185.  00:8351                      ;*********************************************************************************************************
+     186.  00:8351                      ;*
+     187.  00:8351                      ;* Prepara el VDP para escribir en VRAM
+     188.  00:8351                      ;*
+     189.  00:8351                      ;* Parámetros: HL = dirección VRAM en la que queremos escribir
+     190.  00:8351                      ;*
+     191.  00:8351                      ;* Devuelve: C' = Puerto de escritura del VDP
+     192.  00:8351                      ;*
+     193.  00:8351                      ;* Modifica: A'
+     194.  00:8351                      ;*
+     195.  00:8351                      ;*********************************************************************************************************
+     196.  00:8351                      setVDPWrite:
+     197.  00:8351  08                      ex af,af'
+     198.  00:8352  CD 53 00                call SETWRT
+     199.  00:8355  D9                      exx
+     200.  00:8356  3A 06 00                ld a,(byte_6)
+     201.  00:8359  4F                      ld c,a
+     202.  00:835A  D9                      exx
+     203.  00:835B  08                      ex af,af'
+     204.  00:835C  C9                      ret
+     205.  00:835D                      
+     206.  00:835D                      
+     207.  00:835D                      ;*********************************************************************************************************
+     208.  00:835D                      ;*
+     209.  00:835D                      ;* Configura el VDP
+     210.  00:835D                      ;* - Screen 2
+     211.  00:835D                      ;* - Sprites 16x16 unzoomed
+     212.  00:835D                      ;* - Pattern name table = #3800-#3AFF
+     213.  00:835D                      ;* - Pattern color table = #0000-#17FF
+     214.  00:835D                      ;* - Pattern generator table = #2000-#37FF
+     215.  00:835D                      ;* - Sprite atribute table	= #3b00-#3B7F
+     216.  00:835D                      ;* - Sprite generator table = #1800-#1FFF
+     217.  00:835D                      ;* - Background color = #E0 (Gris/Transparente)
+     218.  00:835D                      ;*
+     219.  00:835D                      ;* Parámetros: Ninguno
+     220.  00:835D                      ;*
+     221.  00:835D                      ;* Devuelve: Nada
+     222.  00:835D                      ;*
+     223.  00:835D                      ;* Modifica: AF, HL, BC, D
+     224.  00:835D                      ;*
+     225.  00:835D                      ;*********************************************************************************************************
+     226.  00:835D                      SetVideoMode:
+     227.  00:835D  21 6E 83                ld hl,VDP_InitData
+     228.  00:8360  16 08                   ld d,8
+     229.  00:8362  0E 00                   ld c,0
+     230.  00:8364                      setVideoMode2:
+     231.  00:8364  46                      ld b,(hl)
+     232.  00:8365  CD 47 00                call WRTVDP
+     233.  00:8368  23                      inc hl
+     234.  00:8369  0C                      inc c
+     235.  00:836A  15                      dec d
+     236.  00:836B  20 F7                   jr nz,setVideoMode2
+     237.  00:836D  C9                      ret
+     238.  00:836E                      VDP_InitData:	
+     239.  00:836E  02                      db 2
+     240.  00:836F  E2                      db 0E2h
+     241.  00:8370  0E                      db 0Eh
+     242.  00:8371  7F                      db 7Fh
+     243.  00:8372  07                      db 7
+     244.  00:8373  76                      db 76h
+     245.  00:8374  03                      db 3
+     246.  00:8375  E0                      db 0E0h
+     247.  00:8376                      
+     248.  00:8376                      
+     249.  00:8376                      doCortinilla:
+     250.  00:8376  CD 7A 83            	call drawCortinilla
+     251.  00:8379  F0                  	ret	p
+     252.  00:837A                      
+     253.  00:837A                      
+     254.  00:837A                      ;*********************************************************************************************************
+     255.  00:837A                      ;*
+     256.  00:837A                      ;* Borra la pantalla haciendo una cortinilla de izquierda a derecha, cada invocación una columna
+     257.  00:837A                      ;*
+     258.  00:837A                      ;* Parámetros: waitCounter = 32 - columna a borrar
+     259.  00:837A                      ;*
+     260.  00:837A                      ;* Devuelve: Nada
+     261.  00:837A                      ;*
+     262.  00:837A                      ;* Modifica: DE, HL, AF, B
+     263.  00:837A                      ;*
+     264.  00:837A                      ;*********************************************************************************************************
+     265.  00:837A                      drawCortinilla:
+     266.  00:837A                      
+     267.  00:837A                          ;estamos construyendo la serie #3800 hasta #381F
+     268.  00:837A                          ;que son las posiciones de la primera fila de pantalla
+     269.  00:837A                          ;en la tabla de nombres
+     270.  00:837A  7E                      ld a,(hl)
+     271.  00:837B  26 38                   ld h,38h		                ;#3800 es la tabla de nombres
+     272.  00:837D  EE 1F                   xor	1Fh                         ;segundo nible de la tabla de nombres es 31-waitCounter
+     273.  00:837F  6F                      ld l,a
+     274.  00:8380                      
+     275.  00:8380  06 18                   ld b,18h		                ;las 24 filas de la pantalla
+     276.  00:8382  AF                      xor	a                           ;valor 0 a escribir en VRAM, borra la pantalla
+     277.  00:8383                      
+     278.  00:8383                      drawCortinilla2:                    ;borra una columna
+     279.  00:8383  CD 4D 00                call WRTVRM
+     280.  00:8386  11 20 00                ld de,20h                       ;las 32 columnas de la pantalla
+     281.  00:8389  19                      add	hl,de		                ;siguiente fila
+     282.  00:838A  10 F7                   djnz drawCortinilla2
+     283.  00:838C                      
+     284.  00:838C  C9                      ret
+     114   00:838D                      
+     115   00:838D                      pantallas:
+     116   00:838D  A1 83                   dw p1
+     117   00:838F  0D 84                   dw p2
+     118   00:8391  85 84                   dw p3
+     119   00:8393  D4 84                   dw p4
+     120   00:8395  F5 84                   dw p5
+     121   00:8397  16 85                   dw p6
+     122   00:8399  37 85                   dw p7
+     123   00:839B  58 85                   dw p8
+     124   00:839D  AB 85                   dw p9
+     125   00:839F  CC 85                   dw p10
+     126   00:83A1                      
+     127   00:83A1                      p1:
+     128   00:83A1  (006C)                  incbin "gfx/prueba.bin.asm_0_0.plet5"
+     129   00:840D                      p2:
+     130   00:840D  (0078)                  incbin "gfx/prueba.bin.asm_1_0.plet5"
+     131   00:8485                      p3:
+     132   00:8485  (004F)                  incbin "gfx/prueba.bin.asm_2_0.plet5"
+     133   00:84D4                      p4:
+     134   00:84D4  (0021)                  incbin "gfx/prueba.bin.asm_3_0.plet5"
+     135   00:84F5                      p5:
+     136   00:84F5  (0021)                  incbin "gfx/prueba.bin.asm_4_0.plet5"
+     137   00:8516                      p6:
+     138   00:8516  (0021)                  incbin "gfx/prueba.bin.asm_0_1.plet5"
+     139   00:8537                      p7:
+     140   00:8537  (0021)                  incbin "gfx/prueba.bin.asm_1_1.plet5"
+     141   00:8558                      p8:
+     142   00:8558  (0053)                  incbin "gfx/prueba.bin.asm_2_1.plet5"
+     143   00:85AB                      p9:
+     144   00:85AB  (0021)                  incbin "gfx/prueba.bin.asm_3_1.plet5"
+     145   00:85CC                      p10:
+     146   00:85CC  (0021)                  incbin "gfx/prueba.bin.asm_4_1.plet5"
+     147   00:85ED                      
+     148   00:85ED                      depack_VRAM:	
+     149   00:85ED                          include "lib/PL_VRAM_Depack_SJASM.asm"
+       1.  00:85ED                      ;-----------------------------------------------------------
+       2.  00:85ED                      ; Pletter v0.5b VRAM Depacker v1.1 - 16Kb version
+       3.  00:85ED                      ; HL = RAM/ROM source ; DE = VRAM destination
+       4.  00:85ED                      ;-----------------------------------------------------------
+       5.  00:85ED  F3                  	di
+       6.  00:85EE                      
+       7.  00:85EE                      ; VRAM address setup
+       8.  00:85EE  7B                  	ld	a,e
+       9.  00:85EF  D3 99               	out	[099h],a
+      10.  00:85F1  7A                  	ld	a,d
+      11.  00:85F2  F6 40               	or	040h
+      12.  00:85F4  D3 99               	out	[099h],a
+      13.  00:85F6                      
+      14.  00:85F6                      ; Initialization
+      15.  00:85F6  7E                  	ld	a,[hl]
+      16.  00:85F7  23                  	inc	hl
+      17.  00:85F8  D9                  	exx
+      18.  00:85F9  11 00 00            	ld	de,0
+      19.  00:85FC  87                  	add	a,a
+      20.  00:85FD  3C                  	inc	a
+      21.  00:85FE  CB 13               	rl	e
+      22.  00:8600  87                  	add	a,a
+      23.  00:8601  CB 13               	rl	e
+      24.  00:8603  87                  	add	a,a
+      25.  00:8604  CB 13               	rl	e
+      26.  00:8606  CB 13               	rl	e
+      27.  00:8608  21 BF 86            	ld	hl,modes
+      28.  00:860B  19                  	add	hl,de
+      29.  00:860C  5E                  	ld	e,[hl]
+      30.  00:860D  DD 6B               	ld	ixl,e
+      31.  00:860F  23                  	inc	hl
+      32.  00:8610  5E                  	ld	e,[hl]
+      33.  00:8611  DD 63               	ld	ixh,e
+      34.  00:8613  1E 01               	ld	e,1
+      35.  00:8615  D9                  	exx
+      36.  00:8616  FD 21 1F 86         	ld	iy,loop
+      37.  00:861A                      
+      38.  00:861A                      ; Main depack loop
+      39.  00:861A  0E 98               literal:ld	c,098h
+      40.  00:861C  ED A3               	outi
+      41.  00:861E  13                  	inc	de
+      42.  00:861F  87                  loop:	add	a,a
+      43.  00:8620  CC B3 86              	call	z,getbit
+      44.  00:8623  30 F5               	jr	nc,literal
+      45.  00:8625                      
+      46.  00:8625                      ; Compressed data
+      47.  00:8625  D9                  	exx
+      48.  00:8626  62                  	ld	h,d
+      49.  00:8627  6B                  	ld	l,e
+      50.  00:8628  87                  getlen: add	a,a
+      51.  00:8629  CC B7 86            	call	z,getbitexx
+      52.  00:862C  30 1D               	jr	nc,lenok
+      53.  00:862E  87                  lus:	add	a,a
+      54.  00:862F  CC B7 86            	call	z,getbitexx
+      55.  00:8632  ED 6A               	adc	hl,hl
+      56.  00:8634  D8                  	ret	c
+      57.  00:8635  87                  	add	a,a
+      58.  00:8636  CC B7 86            	call	z,getbitexx
+      59.  00:8639  30 10               	jr	nc,lenok
+      60.  00:863B  87                  	add	a,a
+      61.  00:863C  CC B7 86            	call	z,getbitexx
+      62.  00:863F  ED 6A               	adc	hl,hl
+      63.  00:8641  DA BD 86            	jp	c,Depack_out
+      64.  00:8644  87                  	add	a,a
+      65.  00:8645  CC B7 86            	call	z,getbitexx
+      66.  00:8648  DA 2E 86            	jp	c,lus
+      67.  00:864B  23                  lenok:  inc	hl
+      68.  00:864C  D9                  	exx
+      69.  00:864D  4E                  	ld	c,[hl]
+      70.  00:864E  23                  	inc	hl
+      71.  00:864F  06 00               	ld	b,0
+      72.  00:8651  CB 79               	bit	7,c
+      73.  00:8653  CA 86 86            	jp	z,offsok
+      74.  00:8656  DD E9               	jp	ix
+      75.  00:8658                      
+      76.  00:8658  87                  mode7:  add	a,a
+      77.  00:8659  CC B3 86              	call	z,getbit
+      78.  00:865C  CB 10               	rl	b
+      79.  00:865E  87                  mode6:	add	a,a
+      80.  00:865F  CC B3 86              	call	z,getbit
+      81.  00:8662  CB 10               	rl	b
+      82.  00:8664  87                  mode5:  add	a,a
+      83.  00:8665  CC B3 86              	call	z,getbit
+      84.  00:8668  CB 10               	rl	b
+      85.  00:866A  87                  mode4:  add	a,a
+      86.  00:866B  CC B3 86              	call	z,getbit
+      87.  00:866E  CB 10               	rl	b
+      88.  00:8670  87                  mode3:  add	a,a
+      89.  00:8671  CC B3 86              	call	z,getbit
+      90.  00:8674  CB 10               	rl	b
+      91.  00:8676  87                  mode2:	add	a,a
+      92.  00:8677  CC B3 86              	call	z,getbit
+      93.  00:867A  CB 10               	rl	b
+      94.  00:867C  87                  	add	a,a
+      95.  00:867D  CC B3 86              	call	z,getbit
+      96.  00:8680  30 04               	jr	nc,offsok
+      97.  00:8682  B7                  	or	a
+      98.  00:8683  04                  	inc	b
+      99.  00:8684  CB B9               	res	7,c
+     100.  00:8686  03                  offsok: inc	bc
+     101.  00:8687  E5                  	push	hl
+     102.  00:8688  D9                  	exx
+     103.  00:8689  E5                  	push	hl
+     104.  00:868A  D9                  	exx
+     105.  00:868B  6B                  	ld	l,e
+     106.  00:868C  62                  	ld	h,d
+     107.  00:868D  ED 42               	sbc	hl,bc
+     108.  00:868F  C1                  	pop	bc
+     109.  00:8690  F5                  	push	af
+     110.  00:8691  7D                  .loop:	ld	a,l
+     111.  00:8692  D3 99               	out	[099h],a
+     112.  00:8694  7C                  	ld	a,h
+     113.  00:8695  00                  	nop                     ; VDP timing
+     114.  00:8696  D3 99               	out	[099h],a
+     115.  00:8698  00                  	nop                     ; VDP timing
+     116.  00:8699  DB 98               	in	a,[098h]
+     117.  00:869B  08                  	ex	af,af'
+     118.  00:869C  7B                  	ld	a,e
+     119.  00:869D  00                  	nop			; VDP timing
+     120.  00:869E  D3 99               	out	[099h],a
+     121.  00:86A0  7A                  	ld	a,d
+     122.  00:86A1  F6 40               	or	040h
+     123.  00:86A3  D3 99               	out	[099h],a
+     124.  00:86A5  08                  	ex	af,af'
+     125.  00:86A6  00                  	nop			; VDP timing
+     126.  00:86A7  D3 98               	out	[098h],a
+     127.  00:86A9  13                  	inc	de
+     128.  00:86AA  ED A1               	cpi
+     129.  00:86AC  EA 91 86            	jp	pe,.loop
+     130.  00:86AF  F1                  	pop	af
+     131.  00:86B0  E1                  	pop	hl
+     132.  00:86B1  FD E9               	jp	iy
+     133.  00:86B3                      
+     134.  00:86B3  7E                  getbit: ld	a,[hl]
+     135.  00:86B4  23                  	inc	hl
+     136.  00:86B5  17                  	rla
+     137.  00:86B6  C9                  	ret
+     138.  00:86B7                      
+     139.  00:86B7                      getbitexx:
+     140.  00:86B7  D9                  	exx
+     141.  00:86B8  7E                  	ld	a,[hl]
+     142.  00:86B9  23                  	inc	hl
+     143.  00:86BA  D9                  	exx
+     144.  00:86BB  17                  	rla
+     145.  00:86BC  C9                  	ret
+     146.  00:86BD                      
+     147.  00:86BD                      ; Depacker exit
+     148.  00:86BD                      Depack_out:
+     149.  00:86BD  FB                  	ei
+     150.  00:86BE  C9                  	ret
+     151.  00:86BF                      
+     152.  00:86BF                      modes:
+     153.  00:86BF  86 86               	dw	offsok
+     154.  00:86C1  76 86               	dw	mode2
+     155.  00:86C3  70 86               	dw	mode3
+     156.  00:86C5  6A 86               	dw	mode4
+     157.  00:86C7  64 86               	dw	mode5
+     158.  00:86C9  5E 86               	dw	mode6
+     159.  00:86CB  58 86               	dw	mode7
+     150   00:86CD                      
+     151   00:86CD                      tabla_colores:
+     152   00:86CD  (007F)              	incbin	"gfx/prueba.bin.clr.plet5"
+     153   00:874C                      tabla_tiles:
+     154   00:874C  (00C6)              	incbin	"gfx/prueba.bin.chr.plet5"
+     155   00:8812                      
+     156   00:8812                          include "variables.asm"
+       1.  00:8812                      ;*************************
+       2.  00:8812                      ; DEFINICION DE VARIABLES
+       3.  00:8812                      ;*************************
+       4.  00:8812                      
+       5.  00:8812  00                  x_mapa:				db 0		;coordenada x
+       6.  00:8813  00                  y_mapa:				db 0		;coordenada y
+       7.  00:8814  00                  retardo:			db 0
+       8.  00:8815  00                  waitCounter:        db 0
+       9.  00:8816  00                  tickInProgress:     db 0
+      10.  00:8817  00                  timer:              db 0
+      11.  00:8818  00                  enCortinilla:       db 0
+     157   00:8819                      
+     158   00:8819                      ;******************
+     159   00:8819                      ; FIN DEL PROGRAMA
+     160   00:8819                      ;******************
+     161   00:8819                      
+     162   00:8819                      END:
+
+    LABELS
+-------------------------------------------------
+00:000000D5   GTSTCK
+00:0000013E   RDVDP
+00:00000047   WRTVDP
+00:00000053   SETWRT
+00:0000004D   WRTVRM
+00:0000FD9F   HTIMI
+00:00000005   ANCHO_MAPA
+00:00000002   ALTO_MAPA
+00:00000006   byte_6
+00:00000006 X RETARDO_MAX
+00:00008200   BEGIN
+00:0000825C X bucle_infinito
+00:0000825E   tickMain
+00:00008281   tickMain.seguimos
+00:0000829D   tickMain2
+00:000082A2   do_arriba
+00:000082B0   do_arriba.end
+00:000082B2   do_abajo
+00:000082C1   do_abajo.end
+00:000082C3   do_derecha
+00:000082D2   do_derecha.end
+00:000082D4   do_izquierda
+00:000082E2   do_izquierda.end
+00:000082E4   pinta_pantalla
+00:000082EC X pinta_pantalla.pinta_pantalla0
+00:000082FC   pinta_pantalla.seguimos
+00:00008312   calcula_puntero
+00:00008322   getIndexHL_A
+00:0000832A   ADD_A_HL
+00:0000832F   init_vdp
+00:00008339 X clearScreen
+00:00008340   setFillVRAM
+00:00008343 X fillVRAM
+00:00008344   VRAM_write2
+00:00008351   setVDPWrite
+00:0000835D   SetVideoMode
+00:00008364   setVideoMode2
+00:0000836E   VDP_InitData
+00:00008376   doCortinilla
+00:0000837A   drawCortinilla
+00:00008383   drawCortinilla2
+00:0000838D   pantallas
+00:000083A1   p1
+00:0000840D   p2
+00:00008485   p3
+00:000084D4   p4
+00:000084F5   p5
+00:00008516   p6
+00:00008537   p7
+00:00008558   p8
+00:000085AB   p9
+00:000085CC   p10
+00:000085ED   depack_VRAM
+00:0000861A   literal
+00:0000861F   loop
+00:00008628 X getlen
+00:0000862E   lus
+00:0000864B   lenok
+00:00008658   mode7
+00:0000865E   mode6
+00:00008664   mode5
+00:0000866A   mode4
+00:00008670   mode3
+00:00008676   mode2
+00:00008686   offsok
+00:00008691   offsok.loop
+00:000086B3   getbit
+00:000086B7   getbitexx
+00:000086BD   Depack_out
+00:000086BF   modes
+00:000086CD   tabla_colores
+00:0000874C   tabla_tiles
+00:00008812   x_mapa
+00:00008813   y_mapa
+00:00008814 X retardo
+00:00008815   waitCounter
+00:00008816   tickInProgress
+00:00008817   timer
+00:00008818   enCortinilla
+00:00008819   END
+
+
+ Output: out/main
+-------------------------------------------------
+
+ Page: 00
+  Org: 00008200  Size: *  Used: 00000000
+
+    No output
+
+ Output: out/main.bin
+-------------------------------------------------
+
+ Page: 00
+  Org: 00008200  Size: *  Used: 00000620
+
+   Address   Length Align   Label
+   00008200    1568         BEGIN
