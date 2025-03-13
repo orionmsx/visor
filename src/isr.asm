@@ -7,20 +7,15 @@ tickMain:
     inc (hl)                        ;pone la marca de ISR trabajando
     ei
 
-    ;call chkControls                ;actualiza el estado de los controles
-    ;call runGame                    ;lógica del juego
-
-    ld hl,timer                     ;incrementa el contador global del juego
+    ld hl,timer                     ;incrementa el contador global del programa
     inc (hl)
 
     ld a,(enCortinilla)
     or a
     jr z,.seguimos
 
-    ;call doCortinilla
     call drawCortinilla
     ld hl,waitCounter
-    ;dec	(hl)                        ;decrementa el contador de espera (empezamos con valor 31)
     jp m,.seguimos
     jr .terminamos
 

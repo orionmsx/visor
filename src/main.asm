@@ -30,20 +30,18 @@
 BEGIN:
 
     di
-    im 1
 
     ;Engancha nuestra custom ISR
-    ;Aquí pondríamos im 1, pero ya lo ha hecho la inicialización de la ROM a 32 KB
+    im 1
     ld a,0C3h                               ;código de la instrucción JP
     ld (HTIMI),a
     ld hl,tickMain
     ld (HTIMI+1),hl
     
-    ;bloquea la lógica del juego para inicializar hardware
+    ;bloquea la lógica del programa para inicializar hardware
     ld a,1
     ld (tickInProgress),a
 
-    ;call init_vdp
     call SetVideoMode
 
     ld hl,tabla_colores
@@ -74,7 +72,7 @@ BEGIN:
 
     call pinta_pantalla
 
-    ;desbloquea la lógica del juego tras inicializar hardware
+    ;desbloquea la lógica del programa tras inicializar hardware
     xor a
     ld (tickInProgress),a
     call RDVDP
@@ -83,32 +81,6 @@ BEGIN:
 
 bucle_infinito:
     jr $
-
-;.bucle:
-;    halt
-;
-;    ld a,(retardo)
-;	inc a
-;	ld (retardo),a
-;	cp RETARDO_MAX
-;	jr. nz,.bucle
-;
-;    xor a
-;	call GTSTCK
-;
-;    cp 1
-;    call z,do_arriba
-;	cp 3
-;	call z,do_derecha
-;    cp 5
-;    call z,do_abajo
-;	cp 7
-;	call z,do_izquierda
-;
-;    xor a
-;	ld (retardo),a
-;
-;    jr .bucle
 
     include "isr.asm"
     include "rutinas.asm"

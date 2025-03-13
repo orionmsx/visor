@@ -112,13 +112,6 @@ ADD_A_HL:
     ret
 
 
-init_vdp:
-    ld hl,0
-    ld bc,4000h             ;16 KB
-    xor	a                   ;Valor 0
-    call setFillVRAM        ;Ponemos a 0 las 16 KB de la VRAM
-
-
 ;*********************************************************************************************************
 ;*
 ;* Borra la pantalla
@@ -194,11 +187,13 @@ apaga_pantalla:
     call WRTVDP
     ret
 
+
 enciende_pantalla:
     ld b,0E2h
     ld c,1
     call WRTVDP
     ret
+
 
 ;*********************************************************************************************************
 ;*
@@ -247,8 +242,9 @@ doCortinilla:
     ld (waitCounter),a
     ld a,1
     ld (enCortinilla),a
-    call drawCortinilla
-    ret
+    ;sigue abajo en drawCortinilla
+    ;call drawCortinilla
+    ;ret
 
 
 ;*********************************************************************************************************
@@ -263,7 +259,6 @@ doCortinilla:
 ;*
 ;*********************************************************************************************************
 drawCortinilla:
-
     ld hl,waitCounter
     dec (hl)
     ;estamos construyendo la serie #3800 hasta #381F
