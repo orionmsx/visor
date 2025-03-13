@@ -30,6 +30,7 @@
 BEGIN:
 
     di
+    im 1
 
     ;Engancha nuestra custom ISR
     ;Aquí pondríamos im 1, pero ya lo ha hecho la inicialización de la ROM a 32 KB
@@ -42,7 +43,7 @@ BEGIN:
     ld a,1
     ld (tickInProgress),a
 
-    call init_vdp
+    ;call init_vdp
     call SetVideoMode
 
     ld hl,tabla_colores
@@ -71,7 +72,7 @@ BEGIN:
     inc hl
     ld (hl),a
 
-    ;call pinta_pantalla
+    call pinta_pantalla
 
     ;desbloquea la lógica del juego tras inicializar hardware
     xor a

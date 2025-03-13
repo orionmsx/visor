@@ -17,11 +17,12 @@ tickMain:
     or a
     jr z,.seguimos
 
-    call doCortinilla
+    ;call doCortinilla
+    call drawCortinilla
     ld hl,waitCounter
-    dec	(hl)                        ;decrementa el contador de espera (empezamos con valor 31)
+    ;dec	(hl)                        ;decrementa el contador de espera (empezamos con valor 31)
     jp m,.seguimos
-    jr tickMain2
+    jr .terminamos
 
 .seguimos:
 
@@ -37,6 +38,7 @@ tickMain:
 	cp 7
 	call z,do_izquierda
 
+.terminamos:
     xor a                           ;quita la marca de ISR trabajando
     ld (tickInProgress),a
 

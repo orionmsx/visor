@@ -5,7 +5,7 @@ do_arriba:
     jr z,.end
     dec a
     ld (y_mapa),a
-    call pinta_pantalla
+    call doCortinilla
 .end:
     pop af
     ret
@@ -17,7 +17,7 @@ do_abajo:
     jr z,.end
     inc a
     ld (y_mapa),a
-    call pinta_pantalla
+    call doCortinilla
 .end:
     pop af
     ret
@@ -30,7 +30,7 @@ do_derecha:
     jr z,.end
     inc a
     ld (x_mapa),a
-    call pinta_pantalla
+    call doCortinilla
 .end:
     pop af
     ret
@@ -43,31 +43,14 @@ do_izquierda:
     jr z,.end
     dec a
     ld (x_mapa),a
-    call pinta_pantalla
+    call doCortinilla
 .end:
     pop af
     ret
 
+
 pinta_pantalla:
-    ld a,32
-    ld hl,waitCounter
-    ld (waitCounter),a
-    ;halt
-.pinta_pantalla0:
-    ;halt
-    ld a,1
-    ld (enCortinilla),a
-    call doCortinilla
-    ld hl,waitCounter
-    dec	(hl)                        ;decrementa el contador de espera (empezamos con valor 31)
-    jp m,.seguimos
-    ret
-
-.seguimos:
-    xor a
-    ld (enCortinilla),a
-    ;jp p,.pinta_pantalla0
-
+    call apaga_pantalla
     call calcula_puntero
     add a,a
     ld hl,pantallas
@@ -75,6 +58,7 @@ pinta_pantalla:
     ld de,#3800
     halt
     call depack_VRAM
+    call enciende_pantalla
     ret
 
 
@@ -204,6 +188,18 @@ setVDPWrite:
     ret
 
 
+apaga_pantalla:
+    ld b,022h
+    ld c,1
+    call WRTVDP
+    ret
+
+enciende_pantalla:
+    ld b,0E2h
+    ld c,1
+    call WRTVDP
+    ret
+
 ;*********************************************************************************************************
 ;*
 ;* Configura el VDP
@@ -247,8 +243,12 @@ VDP_InitData:
 
 
 doCortinilla:
-	call drawCortinilla
-	ret	p
+	ld a,32
+    ld (waitCounter),a
+    ld a,1
+    ld (enCortinilla),a
+    call drawCortinilla
+    ret
 
 
 ;*********************************************************************************************************
@@ -264,6 +264,8 @@ doCortinilla:
 ;*********************************************************************************************************
 drawCortinilla:
 
+    ld hl,waitCounter
+    dec (hl)
     ;estamos construyendo la serie #3800 hasta #381F
     ;que son las posiciones de la primera fila de pantalla
     ;en la tabla de nombres
@@ -281,4 +283,14 @@ drawCortinilla2:                    ;borra una columna
     add	hl,de		                ;siguiente fila
     djnz drawCortinilla2
 
+    ld a,(waitCounter)
+    or a
+    jr z,.finCortinilla
+
+.salimos
+    ret
+.finCortinilla
+    xor a
+    ld (enCortinilla),a
+    call pinta_pantalla
     ret
