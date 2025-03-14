@@ -64,6 +64,8 @@ BEGIN:
     ld de,#3000 
     call depack_VRAM
 
+    call loadFont	            ;carga la fuente
+
     xor a
     ld hl,x_mapa
     ld (hl),a

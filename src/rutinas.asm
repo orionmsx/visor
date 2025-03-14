@@ -58,6 +58,7 @@ pinta_pantalla:
     ld de,#3800
     halt
     call depack_VRAM
+    call printHUD
     call enciende_pantalla
     ret
 
@@ -288,4 +289,186 @@ drawCortinilla2:                    ;borra una columna
     xor a
     ld (enCortinilla),a
     call pinta_pantalla
+    ret
+
+
+;*********************************************************************************************************
+;*
+;* Carga la fuente a partir del tile 16 y rellena la tabla de color
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: HL, BC, A
+;*
+;*********************************************************************************************************
+loadFont:
+    ld de,GFX_Font
+    ld hl,2080h	            ;pattern generator table addres (pattern 16)
+    call UnpackPatterns
+    ld a,0F0h               ;color blanco sobre transparente
+    ld hl,80h               ;color table address (tile 16)
+    ld bc,180h              ;número de bytes a rellenar
+fillVRAM3Bank:
+    ld d,3
+fillVRAM3Bank2:
+    push bc
+    push de
+    call setFillVRAM        ;rellena la tabla de color
+    ld de,800h              ;siguiente banco
+    add hl,de
+    pop de
+    pop bc
+    dec d
+    jr nz,fillVRAM3Bank2
+
+    ret
+
+
+;*********************************************************************************************************
+;*
+;* Descomprime los datos de la tabla de patrones o de colores en los tres bancos
+;*
+;* Parámetros: DE = datos, HL = dirección de la tabla
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: HL, BC, A
+;*
+;*********************************************************************************************************
+UnpackPatterns:
+    ld b,3
+setPatternDatax_:
+    push bc
+    push de
+    call unpackGFX
+    ld de,800h	            ;siguiente banco
+    add	hl,de
+    pop	de
+    pop	bc
+    djnz setPatternDatax_
+    ret
+
+
+;*********************************************************************************************************
+;*
+;* Paso previo a unpackGFX para indicar mediante DE la dirección de VRAM donde escribir
+;*
+;*********************************************************************************************************
+unpackGFXset:
+    ex de,hl
+    ld e,(hl)
+    inc	hl
+    ld d,(hl)
+    ex de,hl		        ;HL = Direccion de la VRAM
+    inc	de
+    ;sigue abajo en unpackGFX
+
+
+;*********************************************************************************************************
+;*
+;* Interpreta los datos graficos
+;*
+;* Parámetros: DE = Datos a interpretar, HL = VRAM address
+;*  +0: Numero de veces a repetir un dato
+;*  +1: Dato a repetir
+;*
+;*  Si el bit7 del numero de veces a repetir esta activo:
+;*  +0: Cantidad de bytes a transferir a VRAM
+;*  +1: Datos a transferir
+;*
+;*  0 = Fin de datos
+;*
+;* Devuelve: 
+;*
+;* Modifica: 
+;*
+;*********************************************************************************************************
+unpackGFX:
+    call setVDPWrite
+unpackGFX2:
+    ld a,(de)
+    and	7Fh
+    ld c,a
+    ld a,(de)
+    inc	de
+    jr nz,unpackGFX3
+    cp c
+    jr nz,unpackGFXset      ;cambia a una nueva posicion en la VRAM
+    ret
+unpackGFX3:
+    ld b,0
+    cp c
+    push af
+    call nz,DEtoVRAM	    ;transfiere desde DE a VRAM (BC bytes)
+    pop	af
+    call z,fillVRAM_DE
+    jr unpackGFX2
+
+
+;*********************************************************************************************************
+;*
+;* Transfiere datos desde la RAM a la VRAM
+;*
+;* Parámetros: DE = Origen, BC = Numero de datos
+;*
+;* Devuelve: 
+;*
+;* Modifica: 
+;*
+;*********************************************************************************************************
+DEtoVRAM:
+    ld a,(de)
+    exx
+    out	(c),a
+    exx
+    inc	de
+    dec	bc
+    ld a,b
+    or c
+    jr nz,DEtoVRAM
+    ret
+
+
+;*********************************************************************************************************
+;*
+;* Rellena BC bytes de VRAM con el dato (DE)
+;*
+;* Parámetros: 
+;*
+;* Devuelve: 
+;*
+;* Modifica: 
+;*
+;*********************************************************************************************************
+fillVRAM_DE:
+    ld	a,(de)
+    inc	de
+    jp	fillVRAM
+
+
+printHUD:
+    ld a,16
+    ld hl,0x380C
+    call WRTVRM
+    ld a,(x_mapa)
+    add a,16
+    inc hl
+    call WRTVRM
+
+    ld a,32
+    inc hl
+    inc hl
+    call WRTVRM
+
+    ld a,16
+    inc hl
+    inc hl
+    call WRTVRM
+    ld a,(y_mapa)
+    add a,16
+    inc hl
+    call WRTVRM
+    
     ret
