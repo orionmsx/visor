@@ -449,11 +449,15 @@ fillVRAM_DE:
 
 
 printHUD:
-    ld a,16
     ld hl,0x380C
-    call WRTVRM
     ld a,(x_mapa)
-    add a,16
+    call bin2bcd
+    call AL_C__AH_B
+    ld a,16
+    add a,b
+    call WRTVRM
+    ld a,16
+    add a,c
     inc hl
     call WRTVRM
 
@@ -461,14 +465,47 @@ printHUD:
     inc hl
     inc hl
     call WRTVRM
+    inc hl
+    inc hl
 
-    ld a,16
-    inc hl
-    inc hl
-    call WRTVRM
     ld a,(y_mapa)
-    add a,16
+    call bin2bcd
+    call AL_C__AH_B
+    ld a,16
+    add a,b
+    call WRTVRM
+    ld a,16
+    add a,c
     inc hl
     call WRTVRM
     
+    ret
+
+
+bin2bcd:
+;https://www.msx.org/forum/development/msx-development/bcdhex-conversion-asm
+    push bc
+    ld c,a
+    ld b,8
+    xor a
+.loop:
+    sla c
+    adc a,a
+    daa
+    djnz .loop
+    pop bc
+    ret
+
+
+AL_C__AH_B:
+    push af		; Copia	el nibble alto de A en B y el bajo en C
+    rra
+    rra
+    rra
+    rra
+    and	0Fh
+    ld b,a
+    pop	af
+    and	0Fh
+    ld c,a
     ret
