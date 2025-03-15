@@ -11,11 +11,12 @@ Visor de mapeado de pantallas sin scroll para MSX en screen 2
 
 * Es una herramienta que me hice para mi uso personal.
 * Sirve para ver las pantallas de un mapeado y poder moverte entre ellas con los cursores.
-* A mí me sirve para ver en el emulador o en un MSX real el aspecto que van a tener, sobre todo los colores.
-* En la primera línea se muestran las coordenadas de la pantalla dentro del mapa.
+* La uso para ver en el emulador o en un MSX real el aspecto que van a tener, sobre todo los colores.
+* En la primera línea, que suele tener el marcador, se muestran las coordenadas de la pantalla dentro del mapa. Esto lo puedes ajustar a tu gusto haciendo algún que otro cambio.
 * Escrito en asm, concretamente he usado Sjasm Z80 Assembler v0.42c, de [XL2S Entertainment](https://www.xl2s.tk/).
 * Trabaja con mapas de hasta 99x99 pantallas.
 * Funciona de forma bastante directa si traes las pantallas desde [nMSXtiles](https://github.com/pipagerardo/nMSXtiles).
+* Transiciones con efecto cortinilla a negro, que se puede desactivar con pocos cambios. Está explicado en el comentario de las rutinas do_arriba, do_abajo, do_derecha y do_izquierda (rutinas.asm).
 
 ## Uso
 

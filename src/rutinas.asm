@@ -16,7 +16,7 @@ do_arriba:
     jr z,.end
     dec a
     ld (y_mapa),a
-    call doCortinilla
+    call doCortinilla               ;reemplaza por call pinta_pantalla para no usar la cortinilla
 .end:
     pop af
     ret
@@ -40,7 +40,7 @@ do_abajo:
     jr z,.end
     inc a
     ld (y_mapa),a
-    call doCortinilla
+    call doCortinilla               ;reemplaza por call pinta_pantalla para no usar la cortinilla
 .end:
     pop af
     ret
@@ -64,7 +64,7 @@ do_derecha:
     jr z,.end
     inc a
     ld (x_mapa),a
-    call doCortinilla
+    call doCortinilla               ;reemplaza por call pinta_pantalla para no usar la cortinilla
 .end:
     pop af
     ret
@@ -88,7 +88,7 @@ do_izquierda:
     jr z,.end
     dec a
     ld (x_mapa),a
-    call doCortinilla
+    call doCortinilla               ;reemplaza por call pinta_pantalla para no usar la cortinilla
 .end:
     pop af
     ret
