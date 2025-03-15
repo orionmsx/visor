@@ -69,7 +69,7 @@ BEGIN:
     xor a
     ld hl,x_mapa
     ld (hl),a
-    inc hl
+    inc hl                      ;y_mapa está a continuación de x_mapa en la RAM
     ld (hl),a
 
     call pinta_pantalla
@@ -86,47 +86,10 @@ bucle_infinito:
 
     include "isr.asm"
     include "rutinas.asm"
-
-pantallas:
-    dw p1
-    dw p2
-    dw p3
-    dw p4
-    dw p5
-    dw p6
-    dw p7
-    dw p8
-    dw p9
-    dw p10
-
-p1:
-    incbin "gfx/prueba.bin.asm_0_0.plet5"
-p2:
-    incbin "gfx/prueba.bin.asm_1_0.plet5"
-p3:
-    incbin "gfx/prueba.bin.asm_2_0.plet5"
-p4:
-    incbin "gfx/prueba.bin.asm_3_0.plet5"
-p5:
-    incbin "gfx/prueba.bin.asm_4_0.plet5"
-p6:
-    incbin "gfx/prueba.bin.asm_0_1.plet5"
-p7:
-    incbin "gfx/prueba.bin.asm_1_1.plet5"
-p8:
-    incbin "gfx/prueba.bin.asm_2_1.plet5"
-p9:
-    incbin "gfx/prueba.bin.asm_3_1.plet5"
-p10:
-    incbin "gfx/prueba.bin.asm_4_1.plet5"
+    include "pantallas.asm"
 
 depack_VRAM:	
     include "lib/PL_VRAM_Depack_SJASM.asm"
-
-tabla_colores:
-	incbin	"gfx/prueba.bin.clr.plet5"
-tabla_tiles:
-	incbin	"gfx/prueba.bin.chr.plet5"
 
     include "variables.asm"
 

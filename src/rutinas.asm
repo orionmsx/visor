@@ -1,3 +1,14 @@
+;*********************************************************************************************************
+;*
+;* Nos movemos a la pantalla de arriba
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: Nada
+;*
+;*********************************************************************************************************
 do_arriba:
     push af
     ld a,(y_mapa)
@@ -10,6 +21,18 @@ do_arriba:
     pop af
     ret
 
+
+;*********************************************************************************************************
+;*
+;* Nos movemos a la pantalla de abajo
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: Nada
+;*
+;*********************************************************************************************************
 do_abajo:
     push af
     ld a,(y_mapa)
@@ -23,6 +46,17 @@ do_abajo:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Nos movemos a la pantalla de la derecha
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: Nada
+;*
+;*********************************************************************************************************
 do_derecha:
     push af
     ld a,(x_mapa)
@@ -36,6 +70,17 @@ do_derecha:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Nos movemos a la pantalla de la izquierda
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: Nada
+;*
+;*********************************************************************************************************
 do_izquierda:
     push af
     ld a,(x_mapa)
@@ -49,6 +94,17 @@ do_izquierda:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Dibuja la pantalla
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: A,DE
+;*
+;*********************************************************************************************************
 pinta_pantalla:
     call apaga_pantalla
     call calcula_puntero
@@ -63,6 +119,17 @@ pinta_pantalla:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Devuelve en A la posición de la pantalla en la lista, tomando sus coordenadas x_mapa e y_mapa
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: A = posición de la pantalla en la lista
+;*
+;* Modifica: Nada
+;*
+;*********************************************************************************************************
 calcula_puntero:
     ld a,(y_mapa)
     ld b,a
@@ -182,6 +249,17 @@ setVDPWrite:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Desactiva la pantalla en el VDP
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: BC,AF
+;*
+;*********************************************************************************************************
 apaga_pantalla:
     ld b,022h
     ld c,1
@@ -189,6 +267,17 @@ apaga_pantalla:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Activa la pantalla en el VDP
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: BC,AF
+;*
+;*********************************************************************************************************
 enciende_pantalla:
     ld b,0E2h
     ld c,1
@@ -238,14 +327,23 @@ VDP_InitData:
     db 0E0h
 
 
+;*********************************************************************************************************
+;*
+;* Inicialización para la primera invocación de drawCortinilla
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: A
+;*
+;*********************************************************************************************************
 doCortinilla:
 	ld a,32
     ld (waitCounter),a
     ld a,1
     ld (enCortinilla),a
     ;sigue abajo en drawCortinilla
-    ;call drawCortinilla
-    ;ret
 
 
 ;*********************************************************************************************************
@@ -294,7 +392,7 @@ drawCortinilla2:                    ;borra una columna
 
 ;*********************************************************************************************************
 ;*
-;* Carga la fuente a partir del tile 16 y rellena la tabla de color
+;* Carga la fuente a partir del tile 16 y rellena su parte de la tabla de color
 ;*
 ;* Parámetros: Ninguno
 ;*
@@ -380,9 +478,9 @@ unpackGFXset:
 ;*
 ;*  0 = Fin de datos
 ;*
-;* Devuelve: 
+;* Devuelve: Nada
 ;*
-;* Modifica: 
+;* Modifica: A,BC,DE
 ;*
 ;*********************************************************************************************************
 unpackGFX:
@@ -413,9 +511,9 @@ unpackGFX3:
 ;*
 ;* Parámetros: DE = Origen, BC = Numero de datos
 ;*
-;* Devuelve: 
+;* Devuelve: Nada
 ;*
-;* Modifica: 
+;* Modifica: A,BC,DE
 ;*
 ;*********************************************************************************************************
 DEtoVRAM:
@@ -435,11 +533,11 @@ DEtoVRAM:
 ;*
 ;* Rellena BC bytes de VRAM con el dato (DE)
 ;*
-;* Parámetros: 
+;* Parámetros: BC = número de bytes a rellenar, DE = dirección del dato en RAM
 ;*
-;* Devuelve: 
+;* Devuelve: Nada
 ;*
-;* Modifica: 
+;* Modifica: A,DE
 ;*
 ;*********************************************************************************************************
 fillVRAM_DE:
@@ -448,6 +546,17 @@ fillVRAM_DE:
     jp	fillVRAM
 
 
+;*********************************************************************************************************
+;*
+;* Escribe las coordenadas de la pantalla actual en la primera fila
+;*
+;* Parámetros: Ninguno
+;*
+;* Devuelve: Nada
+;*
+;* Modifica: HL,A,BC
+;*
+;*********************************************************************************************************
 printHUD:
     ld hl,0x380C
     ld a,(x_mapa)
@@ -482,6 +591,17 @@ printHUD:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Convierte el número en A de binario a BCD
+;*
+;* Parámetros: A = número a convertir
+;*
+;* Devuelve: A = número en BCD
+;*
+;* Modifica: BC
+;*
+;*********************************************************************************************************
 bin2bcd:
 ;https://www.msx.org/forum/development/msx-development/bcdhex-conversion-asm
     push bc
@@ -497,8 +617,19 @@ bin2bcd:
     ret
 
 
+;*********************************************************************************************************
+;*
+;* Copia el nibble alto de A en B y el bajo en C
+;*
+;* Parámetros: A = numero a separar
+;*
+;* Devuelve: B = nibble alto, C = nibble bajo
+;*
+;* Modifica: Nada
+;*
+;*********************************************************************************************************
 AL_C__AH_B:
-    push af		; Copia	el nibble alto de A en B y el bajo en C
+    push af 
     rra
     rra
     rra
