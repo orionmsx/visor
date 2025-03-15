@@ -30,5 +30,4 @@ Ninguna, puedes usar este código para lo que quieras.
 # Créditos
 
 * Escrito por [Orion](https://orionmsx.com/).
-* Uso algunas rutinas de Konami para la gestión del VDP y para controlar el puntero a la pantalla que hay que cargar, gracias al desensamblado de [Manuel Pazos](https://github.com/GuillianSeed).
 * Rutina de conversión a BCD publicada por "bore" en los [foros de msx.org](https://www.msx.org/forum/development/msx-development/bcdhex-conversion-asm).
