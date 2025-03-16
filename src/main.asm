@@ -1,8 +1,8 @@
 ;*********************************************************************
 ;*
-;* Visor de pantallas
+;* Visor de pantallas 1.1
 ;*
-;* Fecha: 09/03/2025
+;* Fecha: 16/03/2025
 ;* Autor: Rafael López "Orion"
 ;* Email: orion@orionmsx.com
 ;*

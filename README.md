@@ -6,6 +6,7 @@ Visor de mapeado de pantallas sin scroll para MSX en screen 2
 ## Changelog
 
 * [15/03/2025] v1.0 - Primera versión
+* [16/03/2025] v1.1 - El tile donde se inyecta la fuente ahora es configurable
 
 ## Descripción
 
