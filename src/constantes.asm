@@ -22,4 +22,5 @@ HTIMI	equ #FD9F   ;dirección de la ISR original del sistema para el VDP
 
 ANCHO_MAPA  equ 5
 ALTO_MAPA   equ 5
+INI_FONT    equ 16  ;tile a partir del que se inyecta la fuente
 byte_6      equ 6   ;para preparar el VDP para una escritura

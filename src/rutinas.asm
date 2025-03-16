@@ -392,7 +392,7 @@ drawCortinilla2:                    ;borra una columna
 
 ;*********************************************************************************************************
 ;*
-;* Carga la fuente a partir del tile 16 y rellena su parte de la tabla de color
+;* Carga la fuente a partir del tile INI_FONT y rellena su parte de la tabla de color
 ;*
 ;* Parámetros: Ninguno
 ;*
@@ -402,11 +402,11 @@ drawCortinilla2:                    ;borra una columna
 ;*
 ;*********************************************************************************************************
 loadFont:
-    ld de,GFX_Font
-    ld hl,2080h	            ;pattern generator table addres (pattern 16)
+    ld de,GFX_Font            
+    ld hl,8192+(8*INI_FONT) ;pattern generator table addres (pattern INI_FONT)
     call UnpackPatterns
     ld a,0F0h               ;color blanco sobre transparente
-    ld hl,80h               ;color table address (tile 16)
+    ld hl,8*INI_FONT        ;color table address (tile INI_FONT)
     ld bc,180h              ;número de bytes a rellenar
 fillVRAM3Bank:
     ld d,3
@@ -562,15 +562,15 @@ printHUD:
     ld a,(x_mapa)
     call bin2bcd
     call AL_C__AH_B
-    ld a,16
+    ld a,INI_FONT
     add a,b
     call WRTVRM
-    ld a,16
+    ld a,INI_FONT
     add a,c
     inc hl
     call WRTVRM
 
-    ld a,32
+    ld a,INI_FONT+16                    ;caracter del guión
     inc hl
     inc hl
     call WRTVRM
@@ -580,10 +580,10 @@ printHUD:
     ld a,(y_mapa)
     call bin2bcd
     call AL_C__AH_B
-    ld a,16
+    ld a,INI_FONT
     add a,b
     call WRTVRM
-    ld a,16
+    ld a,INI_FONT
     add a,c
     inc hl
     call WRTVRM
